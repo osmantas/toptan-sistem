@@ -1,0 +1,283 @@
+Comparing files ADMIN\index_backup.php and ADMIN\INDEX.PHP
+***** ADMIN\index_backup.php
+    </style>
+</head>
+***** ADMIN\INDEX.PHP
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+*****
+
+***** ADMIN\index_backup.php
+            <li class="nav-item active" onclick="loadPage('siparisler', this)">Sipari+þler</li>
+        </ul>
+***** ADMIN\INDEX.PHP
+            <li class="nav-item active" onclick="loadPage('siparisler', this)">Sipari+þler</li>
+            <li class="nav-item" onclick="loadPage('raporlar', this)">Raporlar & ¦-statistik</li>
+        </ul>
+*****
+
+***** ADMIN\index_backup.php
+                loadTeslimatlar();
+            }
+***** ADMIN\INDEX.PHP
+                loadTeslimatlar();
+            } else if (page === 'raporlar') {
+                pageTitle.textContent = "Raporlar & ¦-statistik";
+                loadRaporlar();
+            }
+*****
+
+***** ADMIN\index_backup.php
+                @media print { body { padding: 15px; } button { display: none; } }
+            </style></head><body>
+            <div class="header">
+                <div class="header-left">
+                    <h1>­þôÐ AKSA TOPTAN</h1>
+                    <p>Tedarik Firmas¦- Sipari+þ Fi+þi</p>
+                </div>
+                <div class="header-right">
+                    <strong>Tarih:</strong> ${bugun}<br>
+                    <strong>Saat:</strong> ${saat}<br>
+                    <span class="badge">${liste.length} +-r+-n +ðe+þidi</span>
+                </div>
+            </div>
+            <div class="info-box">
+                Ôä¦´©Å Bu fi+þ tedarik firmas¦-na iletilmek +-zere haz¦-rlanm¦-+þt¦-r. A+þa¦þ¦-daki +-r+-nler i+ðin sipari+þ ve
+rilecektir.
+            </div>
+            <table>
+                <thead><tr>
+                    <th style="width:40px;">#</th>
+***** ADMIN\INDEX.PHP
+                @media print { body { padding: 15px; } button { display: none; } }
+            </style><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    </head>
+
+    <body>
+        <div class="header">
+            <div class="header-left">
+                <h1>­þôÐ AKSA TOPTAN</h1>
+                <p>Tedarik Firmas¦- Sipari+þ Fi+þi</p>
+            </div>
+            <div class="header-right">
+                <strong>Tarih:</strong> ${bugun}<br>
+                <strong>Saat:</strong> ${saat}<br>
+                <span class="badge">${liste.length} +-r+-n +ðe+þidi</span>
+            </div>
+        </div>
+        <div class="info-box">
+            Ôä¦´©Å Bu fi+þ tedarik firmas¦-na iletilmek +-zere haz¦-rlanm¦-+þt¦-r. A+þa¦þ¦-daki +-r+-nler i+ðin sipari+þ verile
+cektir.
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:40px;">#</th>
+*****
+
+Resync Failed.  Files are too different.
+***** ADMIN\index_backup.php
+                    <th style="width:120px; text-align:right;">Miktar (KG)</th>
+                </tr></thead>
+                <tbody>
+                    ${satirlar}
+                    <tr class="total-row">
+                        <td colspan="3" style="text-align:right;">TOPLAM S¦-PAR¦-+Þ:</td>
+                        <td style="text-align:right; color:#4ade80;">${toplamKg.toFixed(1)} KG</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="footer">
+                <div class="sign-col"><div class="sign-line">Haz¦-rlayan</div></div>
+                <div class="sign-col"><div class="sign-line">Onaylayan</div></div>
+                <div class="sign-col"><div class="sign-line">Tedarik Firmas¦-</div></div>
+            </div>
+            <p style="font-size:10px; color:#aaa; text-align:center; margin-top:30px;">AKSA TOPTAN ÔÇö Sistem taraf¦-ndan otoma
+tik olu+þturulmu+þtur.</p>
+            </body></html>`;
+
+            const blob = new Blob([printHTML], { type: 'text/html; charset=utf-8' });
+            const blobUrl = URL.createObjectURL(blob);
+            const w = window.open(blobUrl, '_blank');
+            if (w) {
+                w.onload = () => { setTimeout(() => { w.print(); URL.revokeObjectURL(blobUrl); }, 300); };
+            } else {
+                const a = document.createElement('a'); a.href = blobUrl; a.target = '_blank'; a.click();
+            }
+        }
+
+        // =====================================
+        // TAB 3: TESL¦-MAT
+        // =====================================
+        async function refreshTeslimatTab() {
+            await fetchTeslimatBekleyen();
+            await fetchTeslimEdilenler();
+        }
+
+        async function fetchTeslimatBekleyen() {
+            const musteriId = document.getElementById('teslimatMusteriFilter')?.value || '';
+            let url = '../api/siparis_api.php?action=teslimat_bekleyen&_t=' + Date.now();
+            if (musteriId) url += '&musteri_id=' + musteriId;
+            try {
+                const res = await fetch(url, { cache: 'no-store' });
+                const data = await res.json();
+                const container = document.getElementById('teslimatBekleyenAccordion');
+                if (!container) return;
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="card" style="text-align:center; padding:30px;">Teslim bekleyen +-r+-n yo
+k.</div>';
+                    return;
+                }
+                container.innerHTML = data.map((u, idx) => `
+                    <div class="product-accordion" id="tsacc-${idx}">
+                        <div class="accordion-header" onclick="toggleTeslimatAccordion(${idx}, '${u.urun_kodu}')">
+                            <span class="product-code">${u.urun_kodu}</span>
+                            <span class="product-name">${u.urun_adi}</span>
+                            <div class="product-stats">
+                                <span class="stat-badge geldi">${parseFloat(u.toplam_bekleyen).toFixed(1)} KG</span>
+                                <span class="stat-badge customers">${u.musteri_sayisi} m+-+þteri</span>
+                            </div>
+                            <span class="accordion-chevron">Ôû-</span>
+                        </div>
+                        <div class="accordion-body" id="tsacc-body-${idx}">
+                            <div style="padding:20px; text-align:center; color:var(--text-main);">Y+-kleniyor...</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        async function toggleTeslimatAccordion(idx, urunKodu) {
+            const el = document.getElementById('tsacc-' + idx);
+            const body = document.getElementById('tsacc-body-' + idx);
+            if (el.classList.contains('open')) { el.classList.remove('open'); return; }
+            document.querySelectorAll('#teslimatBekleyenAccordion .product-accordion.open').forEach(a => a.classList.remove('op
+en'));
+            el.classList.add('open');
+            const musteriId = document.getElementById('teslimatMusteriFilter')?.value || '';
+            let url = '../api/siparis_api.php?action=teslimat_musteriler&urun_kodu=' + encodeURIComponent(urunKodu) + '&_t=' + 
+Date.now();
+            if (musteriId) url += '&musteri_id=' + musteriId;
+            try {
+                const res = await fetch(url, { cache: 'no-store' });
+                const data = await res.json();
+                if (data.length === 0) { body.innerHTML = '<div style="padding:20px; text-align:center;">Detay bulunamad¦-.</di
+v>'; return; }
+                let html = `<table><thead><tr>
+                    <th>Firma Ad¦-</th><th>¦-stenen (KG)</th><th>Teslim Edilen</th><th>Kalan</th><th>Tarih</th><th>Teslim Mikta
+r¦-</th><th>¦-+þlem</th>
+                </tr></thead><tbody>`;
+                data.forEach(d => {
+                    const tarih = d.tarih ? new Date(d.tarih).toLocaleDateString('tr-TR') : '-';
+                    const istenen = parseFloat(d.istened_kg || d.istenen_kg);
+                    const teslimEdilen = parseFloat(d.teslim_edilen_kg || 0);
+                    const kalan = parseFloat(d.kalan_kg);
+                    const yuzde = istenen > 0 ? Math.round((teslimEdilen / istenen) * 100) : 0;
+                    html += `<tr>
+                        <td><strong>${d.firma_adi}</strong></td>
+                        <td>${istenen.toFixed(1)} KG</td>
+                        <td>
+***** ADMIN\INDEX.PHP
+                    <th style="width:120px; text-align:right;">Miktar (KG)</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${satirlar}
+                <tr class="total-row">
+                    <td colspan="3" style="text-align:right;">TOPLAM S¦-PAR¦-+Þ:</td>
+                    <td style="text-align:right; color:#4ade80;">${toplamKg.toFixed(1)} KG</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="footer">
+            <div class="sign-col">
+                <div class="sign-line">Haz¦-rlayan</div>
+            </div>
+            <div class="sign-col">
+                <div class="sign-line">Onaylayan</div>
+            </div>
+            <div class="sign-col">
+                <div class="sign-line">Tedarik Firmas¦-</div>
+            </div>
+        </div>
+        <p style="font-size:10px; color:#aaa; text-align:center; margin-top:30px;">AKSA TOPTAN ÔÇö Sistem taraf¦-ndan
+            otomatik olu+þturulmu+þtur.</p>
+    </body>
+
+</html>`;
+
+const blob = new Blob([printHTML], { type: 'text/html; charset=utf-8' });
+const blobUrl = URL.createObjectURL(blob);
+const w = window.open(blobUrl, '_blank');
+if (w) {
+w.onload = () => { setTimeout(() => { w.print(); URL.revokeObjectURL(blobUrl); }, 300); };
+} else {
+const a = document.createElement('a'); a.href = blobUrl; a.target = '_blank'; a.click();
+}
+}
+
+// =====================================
+// TAB 3: TESL¦-MAT
+// =====================================
+async function refreshTeslimatTab() {
+await fetchTeslimatBekleyen();
+await fetchTeslimEdilenler();
+}
+
+async function fetchTeslimatBekleyen() {
+const musteriId = document.getElementById('teslimatMusteriFilter')?.value || '';
+let url = '../api/siparis_api.php?action=teslimat_bekleyen&_t=' + Date.now();
+if (musteriId) url += '&musteri_id=' + musteriId;
+try {
+const res = await fetch(url, { cache: 'no-store' });
+const data = await res.json();
+const container = document.getElementById('teslimatBekleyenAccordion');
+if (!container) return;
+if (data.length === 0) {
+container.innerHTML = '<div class="card" style="text-align:center; padding:30px;">Teslim bekleyen +-r+-n yok.</div>';
+return;
+}
+container.innerHTML = data.map((u, idx) => `
+<div class="product-accordion" id="tsacc-${idx}">
+    <div class="accordion-header" onclick="toggleTeslimatAccordion(${idx}, '${u.urun_kodu}')">
+        <span class="product-code">${u.urun_kodu}</span>
+        <span class="product-name">${u.urun_adi}</span>
+        <div class="product-stats">
+            <span class="stat-badge geldi">${parseFloat(u.toplam_bekleyen).toFixed(1)} KG</span>
+            <span class="stat-badge customers">${u.musteri_sayisi} m+-+þteri</span>
+        </div>
+        <span class="accordion-chevron">Ôû-</span>
+    </div>
+    <div class="accordion-body" id="tsacc-body-${idx}">
+        <div style="padding:20px; text-align:center; color:var(--text-main);">Y+-kleniyor...</div>
+    </div>
+</div>
+`).join('');
+} catch (e) { console.error(e); }
+}
+
+async function toggleTeslimatAccordion(idx, urunKodu) {
+const el = document.getElementById('tsacc-' + idx);
+const body = document.getElementById('tsacc-body-' + idx);
+if (el.classList.contains('open')) { el.classList.remove('open'); return; }
+document.querySelectorAll('#teslimatBekleyenAccordion .product-accordion.open').forEach(a =>
+a.classList.remove('open'));
+el.classList.add('open');
+const musteriId = document.getElementById('teslimatMusteriFilter')?.value || '';
+let url = '../api/siparis_api.php?action=teslimat_musteriler&urun_kodu=' + encodeURIComponent(urunKodu) + '&_t=' +
+Date.now();
+if (musteriId) url += '&musteri_id=' + musteriId;
+try {
+const res = await fetch(url, { cache: 'no-store' });
+const data = await res.json();
+if (data.length === 0) { body.innerHTML = '<div style="padding:20px; text-align:center;">Detay bulunamad¦-.</div>';
+return; }
+let html = `<table>
+    <thead>
+        <tr>
+            <th>Firma Ad¦-</th>
+            <th>¦-stenen (KG)</th>
+            <th>Teslim Edilen</th>
+*****
+

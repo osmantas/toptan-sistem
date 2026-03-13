@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test Teslim</title>
+</head>
+
+<body>
+    <h2>Test: fetchTeslimEdilenler</h2>
+    <div id="result">Bekliyor...</div>
+    <script>
+        async function test() {
+            const el = document.getElementById('result');
+            try {
+                el.textContent = 'Fetching...';
+                const res = await fetch('../api/siparis_api.php?action=teslim_edilenler&_t=' + Date.now(), { cache: 'no-store' });
+                el.textContent = 'Response status: ' + res.status;
+                const text = await res.text();
+                el.textContent = 'Raw text length: ' + text.length + ' | First 200 chars: ' + text.substring(0, 200);
+
+                try {
+                    const data = JSON.parse(text);
+                    el.textContent += '\n\nParsed OK. Array? ' + Array.isArray(data) + ' Length: ' + data.length;
+
+                    if (data.length > 0) {
+                        el.textContent += '\n\nFirst item keys: ' + Object.keys(data[0]).join(', ');
+                        el.textContent += '\n\nFirst item: ' + JSON.stringify(data[0]);
+
+                        // Test grouping
+                        const grouped = {};
+                        data.forEach(d => {
+                            const key = d.musteri_id;
+                            if (!grouped[key]) {
+                                grouped[key] = { firma_adi: d.firma_adi, musteri_id: d.musteri_id, items: [] };
+                            }
+                            grouped[key].items.push(d);
+                        });
+                        el.textContent += '\n\nGrouped keys: ' + Object.keys(grouped).join(', ');
+                        el.textContent += '\nGrouped values count: ' + Object.values(grouped).length;
+
+                        Object.values(grouped).forEach((g, idx) => {
+                            const toplamKg = g.items.reduce((sum, i) => sum + parseFloat(i.teslim_edilen_kg || 0), 0);
+                            el.textContent += '\n\nGroup ' + idx + ': ' + g.firma_adi + ' | Items: ' + g.items.length + ' | Total KG: ' + toplamKg;
+                        });
+                    }
+                } catch (parseErr) {
+                    el.textContent += '\n\nJSON PARSE ERROR: ' + parseErr.message;
+                }
+            } catch (fetchErr) {
+                el.textContent = 'FETCH ERROR: ' + fetchErr.message;
+            }
+        }
+        test();
+    </script>
+</body>
+
+</html>
