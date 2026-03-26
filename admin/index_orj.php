@@ -1,12 +1,4 @@
 <?php
-session_start();
-
-// Eğer giriş yapılmamışsa login sayfasına yönlendir
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header('Location: login.php');
-    exit;
-}
-
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
@@ -1007,7 +999,7 @@ header("Pragma: no-cache");
                 const tbody = document.getElementById('musteriTableBody');
                 tbody.innerHTML = '';
 
-                if (!Array.isArray(data) || data.length === 0) {
+                if (data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Kayıtlı müşteri bulunamadı.</td></tr>';
                     return;
                 }
@@ -1077,36 +1069,19 @@ header("Pragma: no-cache");
                     </button>
                 </div>
 
-                <div class="card" style="margin-top: 0; padding-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                        <div class="search-bar-wrap" style="margin: 0; min-width: 250px;">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="adminUrunArama" placeholder="Ürün kodu veya adı ile ara..." oninput="filterAdminUrunler()" style="margin: 0;">
-                        </div>
-                        <div>
-                            <select id="adminUrunLimit" onchange="changeAdminUrunLimit()" style="padding: 8px; border-radius: 4px; border: 1px solid var(--border); background: #1a1a24; color: var(--text-main);">
-                                <option value="10">10 Kayıt</option>
-                                <option value="20">20 Kayıt</option>
-                                <option value="50">50 Kayıt</option>
-                                <option value="100">100 Kayıt</option>
-                                <option value="5000">Tümü</option>
-                            </select>
-                        </div>
-                    </div>
+                <div class="card" style="margin-top: 0;">
                     <table>
                         <thead>
                             <tr>
                                 <th>Kodu</th>
                                 <th>Adı</th>
                                 <th>Fiyat (USD/KG)</th>
-                                <th>İşlemler</th>
                             </tr>
                         </thead>
                         <tbody id="urunTableBody">
-                            <tr><td colspan="4" style="text-align:center;">Yükleniyor...</td></tr>
+                            <tr><td colspan="3" style="text-align:center;">Yükleniyor...</td></tr>
                         </tbody>
                     </table>
-                    <div id="adminUrunPagination" style="margin-top: 15px; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;"></div>
                 </div>
 
                 <!-- Yeni Ürün Ekle Modal -->
@@ -1128,30 +1103,6 @@ header("Pragma: no-cache");
                                 <input type="number" step="0.01" id="u_usd_fiyat" onfocus="this.select()" required placeholder="0.00">
                             </div>
                             <button type="submit" style="width: 100%; margin-top: 15px; padding: 12px;">Ürünü Kaydet</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Ürün Düzenle Modal -->
-                <div id="editUrunModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close-btn" onclick="closeEditUrunModal()">&times;</span>
-                        <div class="card-title" style="margin-top: 10px; border-bottom: none; margin-bottom: 25px;">Ürün Bilgilerini Güncelle</div>
-                        <form id="editUrunForm" onsubmit="updateUrun(event)">
-                            <input type="hidden" id="edit_u_id">
-                            <div class="form-group">
-                                <label>Ürün Kodu</label>
-                                <input type="text" id="edit_u_urun_kodu" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Ürün Adı</label>
-                                <input type="text" id="edit_u_urun_adi" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Birim USD Fiyatı (KG)</label>
-                                <input type="number" step="0.01" id="edit_u_usd_fiyat" onfocus="this.select()" required>
-                            </div>
-                            <button type="submit" style="width: 100%; margin-top: 15px; padding: 12px; background-color: var(--success);">Değişiklikleri Kaydet</button>
                         </form>
                     </div>
                 </div>
@@ -1184,144 +1135,29 @@ header("Pragma: no-cache");
             }
         });
 
-        let adminUrunPage = 1;
-
-        function changeAdminUrunLimit() {
-            adminUrunPage = 1;
-            fetchUrunler();
-        }
-
-        let adminSearchTimeout = null;
-        function filterAdminUrunler() {
-            if (adminSearchTimeout) clearTimeout(adminSearchTimeout);
-            adminSearchTimeout = setTimeout(() => {
-                adminUrunPage = 1;
-                fetchUrunler();
-            }, 300);
-        }
-
-        function updateAdminUrunPage(p) {
-            adminUrunPage = p;
-            fetchUrunler();
-        }
-
-        function renderAdminUrunPagination(totalPages) {
-            const container = document.getElementById('adminUrunPagination');
-            if (totalPages <= 1) {
-                container.innerHTML = '';
-                return;
-            }
-
-            let html = '';
-            const baseStyle = "padding: 5px 12px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;";
-            
-            const prevDisabled = adminUrunPage === 1;
-            html += `<button style="${baseStyle} border: 1px solid var(--border); background: transparent; color: var(--text-main); ${prevDisabled ? 'opacity:0.5; cursor:default;' : ''}" 
-                        onclick="${!prevDisabled ? `updateAdminUrunPage(${adminUrunPage - 1})` : ''}" ${prevDisabled ? 'disabled' : ''}>◀ Önceki</button>`;
-
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= adminUrunPage - 2 && i <= adminUrunPage + 2)) {
-                    const isActive = (i === adminUrunPage);
-                    html += `<button style="${baseStyle} background: ${isActive ? 'var(--accent)' : 'transparent'}; border: 1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}; color: ${isActive ? '#fff' : 'var(--text-main)'}; font-weight: ${isActive ? 'bold' : 'normal'};" onclick="updateAdminUrunPage(${i})">${i}</button>`;
-                } else if (i === adminUrunPage - 3 || i === adminUrunPage + 3) {
-                    html += `<span style="color:var(--text-main); padding:0 5px; align-self: center;">...</span>`;
-                }
-            }
-
-            const nextDisabled = adminUrunPage === totalPages;
-            html += `<button style="${baseStyle} border: 1px solid var(--border); background: transparent; color: var(--text-main); ${nextDisabled ? 'opacity:0.5; cursor:default;' : ''}" 
-                        onclick="${!nextDisabled ? `updateAdminUrunPage(${adminUrunPage + 1})` : ''}" ${nextDisabled ? 'disabled' : ''}>Sonraki ▶</button>`;
-
-            container.innerHTML = html;
-        }
-
         async function fetchUrunler() {
             try {
-                const limitSelect = document.getElementById('adminUrunLimit');
-                const adminLimit = limitSelect ? limitSelect.value : 5000;
-                
-                const searchInput = document.getElementById('adminUrunArama');
-                const adminSearch = searchInput ? searchInput.value : '';
-
-                const response = await fetch(`../api/admin_urun_api.php?page=${adminUrunPage}&limit=${adminLimit}&search=${encodeURIComponent(adminSearch)}`);
+                const response = await fetch('../api/admin_urun_api.php');
                 const data = await response.json();
                 const tbody = document.getElementById('urunTableBody');
                 tbody.innerHTML = '';
 
-                const results = (data.status === 'success') ? (data.data || []) : [];
-                
-                if (results.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Kayıtlı ürün bulunamadı.</td></tr>';
-                    renderAdminUrunPagination(0);
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Kayıtlı ürün bulunamadı.</td></tr>';
                     return;
                 }
 
-                results.forEach(u => {
-                    // Escape single quotes in names so it doesn't break the onclick string
-                    const safeName = u.urun_adi ? u.urun_adi.replace(/'/g, "\\'") : '';
+                data.forEach(u => {
                     tbody.innerHTML += `
                         <tr>
                             <td><strong>${u.urun_kodu}</strong></td>
                             <td>${u.urun_adi}</td>
                             <td>$ ${u.usd_fiyat}</td>
-                            <td>
-                                <button onclick="editUrun(${u.id}, '${u.urun_kodu}', '${safeName}', ${u.usd_fiyat})" style="padding: 5px 10px; background-color: var(--primary); font-size: 0.85rem;">Düzenle</button>
-                            </td>
                         </tr>
                     `;
                 });
-                
-                if (data.status === 'success') {
-                    renderAdminUrunPagination(data.total_pages);
-                }
-
             } catch (err) {
                 console.error('Ürünler çekilirken hata oluştu:', err);
-            }
-        }
-
-        function editUrun(id, kodu, adi, fiyat) {
-            document.getElementById('edit_u_id').value = id;
-            document.getElementById('edit_u_urun_kodu').value = kodu;
-            document.getElementById('edit_u_urun_adi').value = adi;
-            document.getElementById('edit_u_usd_fiyat').value = fiyat;
-            openEditUrunModal();
-        }
-
-        function openEditUrunModal() {
-            document.getElementById('editUrunModal').style.display = 'block';
-        }
-
-        function closeEditUrunModal() {
-            document.getElementById('editUrunModal').style.display = 'none';
-        }
-
-        async function updateUrun(e) {
-            e.preventDefault();
-            const payload = {
-                id: document.getElementById('edit_u_id').value,
-                urun_kodu: document.getElementById('edit_u_urun_kodu').value,
-                urun_adi: document.getElementById('edit_u_urun_adi').value,
-                usd_fiyat: document.getElementById('edit_u_usd_fiyat').value
-            };
-
-            try {
-                const response = await fetch('../api/admin_urun_api.php', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                if (result.status === 'success') {
-                    showNotification('Ürün başarıyla güncellendi!');
-                    fetchUrunler();
-                    closeEditUrunModal();
-                } else {
-                    alert('Hata: ' + result.message);
-                }
-            } catch (err) {
-                alert('Sistemsel hata oluştu.');
             }
         }
 
@@ -1470,11 +1306,9 @@ header("Pragma: no-cache");
                 const res = await fetch('../api/siparis_api.php?action=musteriler_listesi');
                 const data = await res.json();
                 const sel = document.getElementById('teslimatMusteriFilter');
-                if (sel && Array.isArray(data)) {
-                    data.forEach(m => {
-                        sel.innerHTML += `<option value="${m.id}">${m.firma_adi}</option>`;
-                    });
-                }
+                if (sel) data.forEach(m => {
+                    sel.innerHTML += `<option value="${m.id}">${m.firma_adi}</option>`;
+                });
             } catch (e) { console.error(e); }
         }
 
@@ -1737,7 +1571,7 @@ header("Pragma: no-cache");
                             <th style="padding:10px 14px; text-align:left; width:36px;"><input type="checkbox" id="tedarikTumSec" onchange="tedarikTumunuToggle(this.checked)" title="Tümünü seç"></th>
                             <th style="padding:10px 14px; text-align:left;">Ürün Kodu</th>
                             <th style="padding:10px 14px; text-align:left;">Ürün Adı</th>
-                            <th style="padding:10px 14px; text-align:center;">Toplam KG<br><span style="font-size:0.65rem; color:#888; text-transform:none;">(Şimdiye Kadar Gelen)</span></th>
+                            <th style="padding:10px 14px; text-align:center;">Toplam KG</th>
                             <th style="padding:10px 14px; text-align:center;">Müşteri</th>
                             <th style="padding:10px 14px; text-align:center;">Miktar (Geldi)</th>
                             <th style="padding:10px 14px; text-align:center;">İşlem</th>
@@ -1747,8 +1581,7 @@ header("Pragma: no-cache");
 
             data.forEach((u, idx) => {
                 const detaylar = tedarikDetayData[u.urun_kodu] || [];
-                const toplamBekleyen = parseFloat(u.toplam_bekleyen); // Tedarik edilecek kalan miktar
-                const toplamGelen = parseFloat(u.toplam_gelen || 0);   // Şimdiye kadar gelen miktar
+                const toplamKg = parseFloat(u.toplam_bekleyen);
                 const musteri = u.musteri_sayisi;
 
                 // Her ürün için detay satırlarının toplam istenen_kg'si (sipariş fişi için)
@@ -1757,7 +1590,7 @@ header("Pragma: no-cache");
                         <td style="padding:10px 14px; vertical-align:top;">
                             <input type="checkbox" class="td-urun-check" data-urun="${u.urun_kodu}"
                                 data-urun-adi="${u.urun_adi.replace(/"/g, '&quot;')}"
-                                data-toplam="${toplamBekleyen.toFixed(1)}"
+                                data-toplam="${toplamKg.toFixed(1)}"
                                 onchange="updateTedarikUrunSecim()">
                         </td>
                         <td style="padding:10px 14px; vertical-align:top;">
@@ -1768,7 +1601,7 @@ header("Pragma: no-cache");
                             ${detaylar.length > 0 ? `<div style="margin-top:6px;">${detaylar.map(d => `<span style="font-size:0.75rem; color:var(--text-main); display:block;">└ ${d.firma_adi}: ${parseFloat(d.toplam_istenen).toFixed(1)} KG</span>`).join('')}</div>` : ''}
                         </td>
                         <td style="padding:10px 14px; text-align:center; vertical-align:top;">
-                            <span class="stat-badge kg" style="background-color:rgba(26, 107, 60, 0.2); color:#4ade80; border-color:rgba(74, 222, 128, 0.3);" title="Şimdiye kadar gelen toplam miktar">${toplamGelen.toFixed(1)} KG</span>
+                            <span class="stat-badge kg">${toplamKg.toFixed(1)} KG</span>
                         </td>
                         <td style="padding:10px 14px; text-align:center; vertical-align:top;">
                             <span class="stat-badge customers">${musteri}</span>
@@ -1776,21 +1609,22 @@ header("Pragma: no-cache");
                         <td style="padding:10px 14px; text-align:center; vertical-align:top;">
                             <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
                                 <div style="display:flex; align-items:center; gap:5px;">
-                                    <input type="number" step="0.1" min="0.1" max="${toplamBekleyen.toFixed(1)}"
-                                        value="${toplamBekleyen.toFixed(1)}"
+                                    <input type="number" step="0.1" min="0.1" max="${toplamKg.toFixed(1)}"
+                                        value="${toplamKg.toFixed(1)}"
                                         id="td-urun-miktar-${u.urun_kodu.replace(/[^a-zA-Z0-9]/g, '_')}"
                                         onfocus="this.select()"
                                         onkeydown="if(event.key==='Enter') tedarikUrunGeldi('${u.urun_kodu}')"
                                         style="width:85px; padding:4px 8px; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:var(--text-light); border-radius:5px; font-size:0.88rem; text-align:center;"
-                                        title="Gelen miktar (Kalan Toplam Bekleyen: ${toplamBekleyen.toFixed(1)} KG)">
+                                        title="Gelen miktar (max: ${toplamKg.toFixed(1)} KG)">
                                     <span style="font-size:0.78rem; color:var(--text-main);">KG</span>
                                 </div>
-                                <span style="font-size:0.7rem; color:rgba(255,184,34,0.7);">Kalan Bekleyen: ${toplamBekleyen.toFixed(1)} KG</span>
+                                <span style="font-size:0.7rem; color:rgba(255,184,34,0.7);">Toplam: ${toplamKg.toFixed(1)} KG</span>
                             </div>
                         </td>
                         <td style="padding:10px 14px; text-align:center; vertical-align:top;">
                             <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
                                 <button class="btn-sm btn-geldi" style="font-size:0.75rem; white-space:nowrap;" onclick="tedarikUrunGeldi('${u.urun_kodu}')" title="Girilen miktarı Geldi olarak işaretle">✅ Geldi</button>
+                                <button class="btn-sm btn-iptal" style="font-size:0.75rem; white-space:nowrap;" onclick="tedarikUrunGeriAl('${u.urun_kodu}')" title="Müşteri Siparişlerine geri al">↩ Geri Al</button>
                             </div>
                         </td>
                     </tr>`;
@@ -1912,6 +1746,22 @@ header("Pragma: no-cache");
             }
         }
 
+        // Tek ürünün tüm detaylarını "Beklemede" yap
+        async function tedarikUrunGeriAl(urunKodu) {
+            const detaylar = tedarikDetayData[urunKodu] || [];
+            if (!detaylar.length) return;
+            const ids = detaylar.map(d => d.detay_id);
+            try {
+                const res = await fetch('../api/siparis_api.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'toplu_durum_guncelle', detay_ids: ids, yeni_durum: 'beklemede' })
+                });
+                const r = await res.json();
+                if (r.status === 'success') { showNotification(`${urunKodu} — listeye geri alındı.`); fetchTedarikListesi(); }
+                else alert('Hata: ' + r.message);
+            } catch (e) { alert('Sistemsel hata oluştu.'); }
+        }
 
         // Tüm tedarik satırlarını (ürün bazlı) Geldi yap
         async function topluGeldi() {
@@ -2300,21 +2150,12 @@ header("Pragma: no-cache");
         async function fisKapatVeYazdir(firmaAdi, musteriId) {
             if (!confirm(`"${firmaAdi}" için teslimat hesabı kapatılacak ve fiş oluşturulacak.\n\nBundan sonra yapılacak teslimatlar ayrı bir fiş olarak kaydedilecektir.\n\nDevam etmek istiyor musunuz?`)) return;
 
-            // Kur bilgisi yoksa tekrar çekmeyi dene
-            if (currentUsdRate <= 0) {
-                await fetchUsdRate();
-            }
-
             try {
                 // 1. DB'ye fiş olustur
                 const res = await fetch('../api/siparis_api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        action: 'teslimat_fis_olustur', 
-                        musteri_id: musteriId,
-                        usd_kuru: currentUsdRate
-                    })
+                    body: JSON.stringify({ action: 'teslimat_fis_olustur', musteri_id: musteriId })
                 });
                 const r = await res.json();
                 if (r.status !== 'success') {
@@ -2356,11 +2197,13 @@ header("Pragma: no-cache");
 
                 let satirlar = '';
                 data.forEach((d, i) => {
+                    const tarih = d.tarih ? new Date(d.tarih).toLocaleDateString('tr-TR') : '-';
                     satirlar += `<tr>
                         <td style="padding:6px 10px; border:1px solid #ddd; text-align:center;">${i + 1}</td>
                         <td style="padding:6px 10px; border:1px solid #ddd;">${d.urun_kodu}</td>
                         <td style="padding:6px 10px; border:1px solid #ddd;">${d.urun_adi}</td>
                         <td style="padding:6px 10px; border:1px solid #ddd; text-align:right;">${parseFloat(d.teslim_edilen_kg).toFixed(1)} KG</td>
+                        <td style="padding:6px 10px; border:1px solid #ddd; text-align:center;">${tarih}</td>
                     </tr>`;
                 });
 
@@ -2381,14 +2224,17 @@ header("Pragma: no-cache");
                         .sign-box .line { border-top: 1px solid #333; margin-top: 60px; padding-top: 5px; }
                         @media print { body { padding: 15px; } }
                     </style></head><body>
-                    <div class="header" style="display:none;"></div>
+                    <div class="header">
+                        <h1>AKSA TOPTAN</h1>
+                        <p>Teslimat Fişi</p>
+                    </div>
                     <div class="info">
                         <div><strong>Müşteri:</strong> ${firmaAdi}</div>
                         <div><strong>Tarih:</strong> ${bugün}</div>
                     </div>
                     <table>
                         <thead><tr>
-                            <th>#</th><th>Ürün Kodu</th><th>Ürün Adı</th><th>Miktar (KG)</th>
+                            <th>#</th><th>Ürün Kodu</th><th>Ürün Adı</th><th>Miktar (KG)</th><th>Sipariş Tarihi</th>
                         </tr></thead>
                         <tbody>${satirlar}</tbody>
                     </table>
@@ -2527,7 +2373,7 @@ header("Pragma: no-cache");
             const musteriId = document.getElementById('teslimatFisMusteriFilter')?.value || '';
             const tarihBas = document.getElementById('teslimatFisTarihBas')?.value || '';
             const tarihSon = document.getElementById('teslimatFisTarihSon')?.value || '';
-            let url = '../api/siparis_api.php?action=teslimat_arsiv&_t=' + Date.now();
+            let url = '../api/siparis_api.php?action=teslim_edilenler&_t=' + Date.now();
             if (musteriId) url += '&musteri_id=' + musteriId;
             if (tarihBas) url += '&tarih_bas=' + tarihBas;
             if (tarihSon) url += '&tarih_son=' + tarihSon;
@@ -2540,142 +2386,57 @@ header("Pragma: no-cache");
                 const res = await fetch(url, { cache: 'no-store' });
                 const data = await res.json();
 
-                // teslimat_arsiv apisi paginated döner: { status, data: [], total_pages, ... }
-                const results = data.data || [];
-
-                if (results.length === 0) {
-                    container.innerHTML = '<div class="card" style="text-align:center; padding:30px;">Arşivlenmiş fiş bulunamadı.</div>';
+                if (!Array.isArray(data) || data.length === 0) {
+                    container.innerHTML = '<div class="card" style="text-align:center; padding:30px;">Teslim edilmiş sipariş bulunamadı.</div>';
                     return;
                 }
 
-                renderTeslimatFisiAccordion(results, container);
+                const grouped = {};
+                data.forEach(d => {
+                    const key = d.musteri_id;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            firma_adi: d.firma_adi,
+                            telefon: d.telefon || '',
+                            musteri_id: d.musteri_id,
+                            iskonto_orani: parseFloat(d.iskonto_orani || 0),
+                            items: []
+                        };
+                    }
+                    grouped[key].items.push(d);
+                });
+
+                renderTeslimatFisiAccordion(grouped, container);
             } catch (e) {
                 console.error(e);
                 container.innerHTML = '<div class="card" style="text-align:center; padding:30px; color:var(--danger);">Hata oluştu.</div>';
             }
         }
 
-        function renderTeslimatFisiAccordion(results, container) {
-            let html = '';
-            results.forEach((fis, idx) => {
-                const tarih = new Date(fis.olusturma_tarihi).toLocaleString('tr-TR');
-                
-                html += `
-                    <div class="product-accordion" id="tfacc-${idx}">
-                        <div class="accordion-header" onclick="toggleTeslimatFisDetay(${idx}, ${fis.fis_id})">
-                            <span class="product-name" style="width:250px; font-weight:700; color:var(--accent); font-size:1.05rem; text-align:left; margin-left:0;">${fis.firma_adi}</span>
-                            <div class="product-stats" style="flex:1; justify-content:flex-start; gap:30px;">
-                                <span style="font-size:0.85rem; color:var(--text-main); width:130px; text-align:left;">${tarih}</span>
-                                <span class="stat-badge kg" style="width:80px; text-align:left;">${parseFloat(fis.toplam_kg).toFixed(1)} KG</span>
-                                <span class="stat-badge customers" style="width:80px; text-align:left;">${fis.urun_sayisi} kalem</span>
-                                <span class="stat-badge tamamlandi" style="width:90px; text-align:left;">$ ${parseFloat(fis.toplam_usd).toFixed(2)}</span>
-                            </div>
-                            <button class="btn-sm btn-teslim" style="margin-left:auto; margin-right:15px;" onclick="event.stopPropagation(); printTeslimatFisiProfesyonel(${fis.musteri_id}, ${fis.fis_id})">🖨️ Yazdır</button>
-                            <span class="accordion-chevron">▼</span>
-                        </div>
-                        <div class="accordion-body" id="tfacc-body-${idx}" style="padding:0;">
-                            <div style="padding:20px; text-align:center; color:var(--text-main);">Detaylar yükleniyor...</div>
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        async function toggleTeslimatFisDetay(idx, fisId) {
-            const el = document.getElementById('tfacc-' + idx);
-            const body = document.getElementById('tfacc-body-' + idx);
-            if (el.classList.contains('open')) { el.classList.remove('open'); return; }
-            
-            el.classList.add('open');
-            
-            try {
-                const res = await fetch('../api/siparis_api.php?action=teslimat_fis_detay&fis_id=' + fisId);
-                const data = await res.json();
-                
-                if (!data || data.length === 0) {
-                    body.innerHTML = '<div style="padding:20px; text-align:center;">Kalem bulunamadı.</div>';
-                    return;
-                }
-
-                let rows = '';
-                data.forEach((d, i) => {
-                    const birimFiyat = parseFloat(d.usd_fiyat || 0);
-                    const net = parseFloat(d.teslim_edilen_kg) * birimFiyat * (1 - parseFloat(d.iskonto_orani || 0)/100);
-                    rows += `
-                        <tr>
-                            <td>${i+1}</td>
-                            <td><strong>${d.urun_kodu}</strong></td>
-                            <td>${d.urun_adi}</td>
-                            <td>${parseFloat(d.teslim_edilen_kg).toFixed(1)} KG</td>
-                            <td>$ ${birimFiyat.toFixed(2)}</td>
-                            <td>%${parseFloat(d.iskonto_orani || 0)}</td>
-                            <td>$ ${net.toFixed(2)}</td>
-                        </tr>
-                    `;
-                });
-
-                body.innerHTML = `
-                    <table style="width:100%; border-collapse:collapse;">
-                        <thead>
-                            <tr style="background:rgba(255,255,255,0.03);">
-                                <th>#</th><th>Ürün Kodu</th><th>Ürün Adı</th><th>Miktar</th><th>Birim Fiyat</th><th>İskonto</th><th>Net Tutar</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                `;
-            } catch (err) {
-                body.innerHTML = '<div style="padding:20px; color:var(--danger); text-align:center;">Detaylar yüklenemedi.</div>';
-            }
-        }
-
-        function renderTeslimEdilenlerAccordion(data) {
-            const container = document.getElementById('teslimEdilenlerContainer');
-            if (!container) return;
-            if (!data || !Array.isArray(data) || data.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-main);">Teslim edilmiş sipariş bulunamadı.</div>';
-                return;
-            }
-
-            let grouped = {};
-            data.forEach(item => {
-                if (!grouped[item.musteri_id]) {
-                    grouped[item.musteri_id] = {
-                        firma_adi: item.firma_adi,
-                        musteri_id: item.musteri_id,
-                        iskonto_orani: parseFloat(item.iskonto_orani || 0),
-                        items: []
-                    };
-                }
-                grouped[item.musteri_id].items.push(item);
-            });
-
+        function renderTeslimatFisiAccordion(grouped, container) {
             let html = '';
             Object.values(grouped).forEach((g, idx) => {
-                let brutToplam = 0;
-                let netToplam = 0;
-                g.items.forEach(it => {
-                    const brut = parseFloat(it.teslim_edilen_kg) * parseFloat(it.usd_fiyat);
-                    brutToplam += brut;
-                    netToplam += (brut - (brut * g.iskonto_orani / 100));
-                });
+                const toplamKg = g.items.reduce((s, i) => s + parseFloat(i.teslim_edilen_kg || 0), 0);
+                const brutToplam = g.items.reduce((s, i) => s + (parseFloat(i.teslim_edilen_kg || 0) * parseFloat(i.usd_fiyat || 0)), 0);
+                const iskontoToplam = brutToplam * (g.iskonto_orani / 100);
+                const netToplam = brutToplam - iskontoToplam;
 
                 html += `
-                    <div class="product-accordion" id="teacc-${idx}">
-                        <div class="accordion-header" onclick="toggleAccordion('teacc-${idx}')">
+                    <div class="product-accordion" id="tfacc-${idx}">
+                        <div class="accordion-header" onclick="document.getElementById('tfacc-${idx}').classList.toggle('open')">
                             <span class="product-code">👤 ${g.firma_adi}</span>
-                            <span style="margin-left:15px; flex:1; color:var(--text-main); font-size:0.85rem;">${g.items.length} kalem teslimat</span>
                             <div class="product-stats">
-                                <span class="stat-badge customers" style="background:rgba(27,197,189,0.1); color:var(--success);">$ ${netToplam.toFixed(2)}</span>
-                                <button class="btn-sm btn-teslim" onclick="event.stopPropagation(); printTeslimatFisiProfesyonel(${g.musteri_id})">🖨️ Fiş Yazdır</button>
+                                <span class="stat-badge kg">${toplamKg.toFixed(1)} KG</span>
+                                <span class="stat-badge customers">${g.items.length} kalem</span>
+                                <span class="stat-badge tamamlandi">$ ${netToplam.toFixed(2)}</span>
+                                <button class="btn-sm btn-teslim" style="margin-left:10px;" onclick="event.stopPropagation(); printTeslimatFisiProfesyonel(${g.musteri_id})">🖨️ Fiş Yazdır</button>
                             </div>
                             <span class="accordion-chevron">▼</span>
                         </div>
-                        <div class="accordion-body" id="teacc-body-${idx}">
-                            <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                        <div class="accordion-body" id="tfacc-body-${idx}">
+                            <table>
                                 <thead><tr>
-                                    <th>#</th><th>Ürün</th><th>Miktar</th><th>Fiyat</th><th>Net</th><th>Tarih</th>
+                                    <th>#</th><th>Ürün Kodu</th><th>Ürün Adı</th><th>Miktar (KG)</th><th>Birim Fiyat (USD)</th><th>İskonto (%)</th><th>Net Tutar (USD)</th><th>Tarih</th>
                                 </tr></thead>
                                 <tbody>`;
                 g.items.forEach((item, i) => {
@@ -2686,19 +2447,25 @@ header("Pragma: no-cache");
                     const tarih = item.tarih ? new Date(item.tarih).toLocaleDateString('tr-TR') : '-';
                     html += `<tr>
                         <td>${i + 1}</td>
-                        <td><strong>${item.urun_kodu}</strong><br><small>${item.urun_adi}</small></td>
+                        <td><strong>${item.urun_kodu}</strong></td>
+                        <td>${item.urun_adi}</td>
                         <td>${miktar.toFixed(1)} KG</td>
                         <td>$ ${birimFiyat.toFixed(2)}</td>
+                        <td>% ${g.iskonto_orani.toFixed(1)}</td>
                         <td style="color:var(--success);font-weight:600;">$ ${net.toFixed(2)}</td>
                         <td>${tarih}</td>
                     </tr>`;
                 });
+                const tlToplam = currentUsdRate > 0 ? netToplam * currentUsdRate : 0;
                 html += `</tbody></table>
-                            <div style="padding:12px 15px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                                <div style="font-size:0.88rem; color:var(--text-main);">Brüt: $ ${brutToplam.toFixed(2)} | İskonto: % ${g.iskonto_orani.toFixed(1)}</div>
-                                <div style="display:flex; gap:10px;">
+                            <div style="padding:12px 15px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                                <div style="font-size:0.88rem; color:var(--text-main);">Kur: 1 USD = ${currentUsdRate.toFixed(2)} ₺</div>
+                                <div style="display:flex; gap:20px; align-items:center;">
+                                    <span style="font-size:0.88rem;">Brüt: <strong>$ ${brutToplam.toFixed(2)}</strong></span>
+                                    <span style="font-size:0.88rem; color:var(--danger);">İskonto: <strong>- $ ${iskontoToplam.toFixed(2)}</strong></span>
                                     <span style="font-size:1rem; color:var(--success); font-weight:700;">Net: $ ${netToplam.toFixed(2)}</span>
-                                    <button class="btn-sm btn-close-fis" onclick="closeTeslimatAccount(${g.musteri_id})">🏁 Hesabı Kapat & Yazdır</button>
+                                    <span style="font-size:1rem; color:var(--accent); font-weight:700;">₺ ${tlToplam.toFixed(2)}</span>
+                                    <button class="btn-sm btn-teslim" onclick="printTeslimatFisiProfesyonel(${g.musteri_id})">🖨️ Fiş Yazdır</button>
                                 </div>
                             </div>
                         </div>
@@ -2707,45 +2474,17 @@ header("Pragma: no-cache");
             container.innerHTML = html;
         }
 
-        async function closeTeslimatAccount(musteriId) {
-            if (!confirm('Bu müşterinin teslimat hesabını kapatıp fiş numarasını arşivlemek istediğinize emin misiniz?')) return;
-            try {
-                const res = await fetch('../api/siparis_api.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'teslimat_fis_olustur', musteri_id: musteriId, usd_kuru: currentUsdRate })
-                });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    showNotification('Hesap başarıyla kapatıldı ve fiş oluşturuldu!');
-                    // Otomatik yazdır
-                    printTeslimatFisiProfesyonel(musteriId, data.fis_id);
-                    refreshTeslimatTab();
-                } else {
-                    alert('Hata: ' + data.message);
-                }
-            } catch (err) {
-                console.error(err);
-                alert('İşlem sırasında bir hata oluştu.');
-            }
-        }
-
-        async function printTeslimatFisiProfesyonel(musteriId, fisId = null) {
-            let url;
-            if (fisId) {
-                url = '../api/siparis_api.php?action=teslimat_fis_detay&fis_id=' + fisId + '&_t=' + Date.now();
-            } else {
-                const tarihBas = document.getElementById('teslimatFisTarihBas')?.value || '';
-                const tarihSon = document.getElementById('teslimatFisTarihSon')?.value || '';
-                url = '../api/siparis_api.php?action=teslim_edilenler&musteri_id=' + musteriId + '&_t=' + Date.now();
-                if (tarihBas) url += '&tarih_bas=' + tarihBas;
-                if (tarihSon) url += '&tarih_son=' + tarihSon;
-            }
+        async function printTeslimatFisiProfesyonel(musteriId) {
+            const tarihBas = document.getElementById('teslimatFisTarihBas')?.value || '';
+            const tarihSon = document.getElementById('teslimatFisTarihSon')?.value || '';
+            let url = '../api/siparis_api.php?action=teslim_edilenler&musteri_id=' + musteriId + '&_t=' + Date.now();
+            if (tarihBas) url += '&tarih_bas=' + tarihBas;
+            if (tarihSon) url += '&tarih_son=' + tarihSon;
 
             try {
                 const res = await fetch(url, { cache: 'no-store' });
                 const data = await res.json();
-                if (!data || data.length === 0) { alert('Bu fiş/müşteri için kalem bulunamadı.'); return; }
+                if (!data || data.length === 0) { alert('Bu müşteri için teslim edilen ürün bulunamadı.'); return; }
 
                 const firmaAdi = data[0].firma_adi;
                 const telefon = data[0].telefon || '-';
@@ -2755,25 +2494,25 @@ header("Pragma: no-cache");
 
                 let satirlar = '';
                 let genelBrut = 0;
-                if (Array.isArray(data)) {
-                    data.forEach((d, i) => {
-                        const miktar = parseFloat(d.teslim_edilen_kg || 0);
-                        const birimFiyat = parseFloat(d.usd_fiyat || 0);
-                        const brut = miktar * birimFiyat;
-                        const iskontoTutar = brut * (iskonto / 100);
-                        const net = brut - iskontoTutar;
-                        genelBrut += brut;
-                        satirlar += `<tr>
-                            <td style="padding:8px 12px; border:1px solid #ddd; text-align:center; font-size:13px;">${i + 1}</td>
-                            <td style="padding:8px 12px; border:1px solid #ddd; font-weight:600; font-size:13px;">${d.urun_kodu}</td>
-                            <td style="padding:8px 12px; border:1px solid #ddd; font-size:13px;">${d.urun_adi}</td>
-                            <td style="padding:8px 12px; border:1px solid #ddd; text-align:right; font-size:13px;">${miktar.toFixed(1)}</td>
-                            <td style="padding:8px 12px; border:1px solid #ddd; text-align:right; font-size:13px;">$ ${birimFiyat.toFixed(2)}</td>
-                            <td style="padding:8px 12px; border:1px solid #ddd; text-align:center; font-size:13px;">% ${iskonto.toFixed(1)}</td>
-                            <td style="padding:8px 12px; border:1px solid #ddd; text-align:right; font-weight:600; font-size:13px;">$ ${net.toFixed(2)}</td>
-                        </tr>`;
-                    });
-                }
+                data.forEach((d, i) => {
+                    const miktar = parseFloat(d.teslim_edilen_kg || 0);
+                    const birimFiyat = parseFloat(d.usd_fiyat || 0);
+                    const brut = miktar * birimFiyat;
+                    const iskontoTutar = brut * (iskonto / 100);
+                    const net = brut - iskontoTutar;
+                    genelBrut += brut;
+                    const tarih = d.tarih ? new Date(d.tarih).toLocaleDateString('tr-TR') : '-';
+                    satirlar += `<tr>
+                        <td style="padding:8px 12px; border:1px solid #ddd; text-align:center; font-size:13px;">${i + 1}</td>
+                        <td style="padding:8px 12px; border:1px solid #ddd; font-weight:600; font-size:13px;">${d.urun_kodu}</td>
+                        <td style="padding:8px 12px; border:1px solid #ddd; font-size:13px;">${d.urun_adi}</td>
+                        <td style="padding:8px 12px; border:1px solid #ddd; text-align:right; font-size:13px;">${miktar.toFixed(1)}</td>
+                        <td style="padding:8px 12px; border:1px solid #ddd; text-align:right; font-size:13px;">$ ${birimFiyat.toFixed(2)}</td>
+                        <td style="padding:8px 12px; border:1px solid #ddd; text-align:center; font-size:13px;">% ${iskonto.toFixed(1)}</td>
+                        <td style="padding:8px 12px; border:1px solid #ddd; text-align:right; font-weight:600; font-size:13px;">$ ${net.toFixed(2)}</td>
+                        <td style="padding:8px 12px; border:1px solid #ddd; text-align:center; font-size:13px;">${tarih}</td>
+                    </tr>`;
+                });
 
                 const genelIskonto = genelBrut * (iskonto / 100);
                 const genelNet = genelBrut - genelIskonto;
@@ -2814,14 +2553,19 @@ header("Pragma: no-cache");
                         .totals-row.grand { background: #343a40 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     }
                 </style></head><body>
-                <div class="fis-header" style="display:none;"></div>
+                <div class="fis-header">
+                    <h1>AKSA TOPTAN</h1>
+                    <div class="subtitle">Teslimat Fişi</div>
+                </div>
                 <div class="fis-info">
                     <div class="col">
                         <strong>Müşteri:</strong> ${firmaAdi}<br>
-                        <strong>Düzenlenme Tarihi:</strong> ${bugun}
+                        <strong>Telefon:</strong> ${telefon}<br>
+                        <strong>İskonto Oranı:</strong> % ${iskonto.toFixed(1)}
                     </div>
                     <div class="col" style="text-align:right;">
                         <strong>Fiş No:</strong> ${fisNo}<br>
+                        <strong>Düzenlenme Tarihi:</strong> ${bugun}<br>
                         <strong>Kalem Sayısı:</strong> ${data.length}
                     </div>
                 </div>
@@ -2834,6 +2578,7 @@ header("Pragma: no-cache");
                         <th style="text-align:right;">Birim Fiyat</th>
                         <th style="text-align:center;">İskonto</th>
                         <th style="text-align:right;">Net Tutar</th>
+                        <th style="text-align:center;">Sipariş Tarihi</th>
                     </tr></thead>
                     <tbody>${satirlar}</tbody>
                 </table>
@@ -2880,7 +2625,7 @@ header("Pragma: no-cache");
             }
         }
 
-        async function fetchTeslimEdilenlerLegacy() {
+        async function fetchTeslimEdilenler() {
             const musteriId = document.getElementById('teslimatMusteriFilter')?.value || '';
             let url = '../api/siparis_api.php?action=teslim_edilenler';
             if (musteriId) url += '&musteri_id=' + musteriId;
@@ -3202,7 +2947,7 @@ header("Pragma: no-cache");
                 const tbody = document.getElementById('dagitimMusterilerBody');
                 tbody.innerHTML = '';
 
-                if (!Array.isArray(data) || data.length === 0) {
+                if (data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Kayıt bulunamadı.</td></tr>';
                 } else {
                     data.forEach(d => {
